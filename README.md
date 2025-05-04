@@ -1,4 +1,5 @@
 # BlockCloud Backend
+[![codecov](https://codecov.io/gh/BlockCloud-dev/blockcloud-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/BlockCloud-dev/blockcloud-backend)
 
 BlockCloud is a Spring Boot-based backend service designed to support the core functionalities of the BlockCloud application.
 
