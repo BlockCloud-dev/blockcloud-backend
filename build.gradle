@@ -5,7 +5,10 @@ plugins {
 }
 
 group = 'com.blockcloud'
-version = '0.0.1-SNAPSHOT'
+
+def props = new Properties()
+file("version.properties").withInputStream { props.load(it) }
+version = props['version']
 
 java {
 	toolchain {
