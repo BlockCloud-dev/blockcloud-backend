@@ -78,3 +78,46 @@ After the build, open the following file in a browser:
 ```bash
 build/docs/javadoc/index.html
 ```
+
+## Test Coverage with JaCoCo
+
+The project uses **JaCoCo** to generate code coverage reports.
+
+### Run Tests with Coverage
+
+```bash
+./gradlew jacocoTestReport
+```
+
+HTML report will be generated at:
+
+```
+build/reports/jacoco/test/html/index.html
+```
+
+### CI Integration
+
+The CI workflow includes:
+
+- Running unit tests
+- Generating JaCoCo report
+- Uploading the report as an artifact
+- Uploading to Codecov.io
+
+### Codecov Setup
+
+1. Visit https://codecov.io and sign in with GitHub
+2. Add your repository (e.g. BlockCloud-dev/blockcloud-backend)
+3. Get your `CODECOV_TOKEN` and add it to GitHub Secrets:
+   - Settings → Secrets → Actions → New repository secret
+   - Name: `CODECOV_TOKEN`
+   - Value: (paste your token)
+
+
+### Add Codecov Badge to README
+
+```md
+[![codecov](https://codecov.io/gh/BlockCloud-dev/blockcloud-backend/branch/main/graph/badge.svg?token=YOUR_TOKEN_HERE)](https://codecov.io/gh/BlockCloud-dev/blockcloud-backend)
+```
+
+Replace `YOUR_TOKEN_HERE` with your actual Codecov badge token or use the auto-generated markdown from the Codecov UI.
