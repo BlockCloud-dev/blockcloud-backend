@@ -65,3 +65,16 @@ Hot reload is supported with DevTools if included.
   permissions:
     contents: write
   ```
+
+## Javadoc (Code Documentation)
+
+To generate HTML documentation from your Java source code:
+
+```bash
+./gradlew javadoc
+```
+After the build, open the following file in a browser:
+
+```bash
+build/docs/javadoc/index.html
+```
