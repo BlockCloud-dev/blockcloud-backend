@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -26,3 +25,12 @@ jobs:
 
     - name: Build with Gradle
       run: ./gradlew build
+
+    - name: Run Tests with Coverage
+      run: ./gradlew jacocoTestReport
+
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: jacoco-html-report
+        path: build/reports/jacoco/test/html
