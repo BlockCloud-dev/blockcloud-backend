@@ -41,7 +41,8 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/login/success",
                     "/signup/success",
-                    "/error"
+                    "/error",
+                    "/login/oauth2/code/google"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

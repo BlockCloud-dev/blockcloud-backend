@@ -34,12 +34,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		User existData = userRepository.findByEmail(email).orElse(null);
 
 		if (existData == null) {
-			return new CustomOAuth2User(User.builder()
+			User user = User.builder()
 				.email(oAuth2Response.getEmail())
-				.username(oAuth2Response.getName())  // 구글에서 제공하는 이름
-				.imgUrl(oAuth2Response.getPicture()) // 구글 프로필 이미지
+				.username(oAuth2Response.getName())
+				.imgUrl(oAuth2Response.getPicture()) //
 				.role("ROLE_USER")  // 기본 역할 설정
-				.build());
+				.build();
+
+			userRepository.save(user);
+
+			return new CustomOAuth2User(user);
 		} else {
 			return new CustomOAuth2User(existData);
 		}

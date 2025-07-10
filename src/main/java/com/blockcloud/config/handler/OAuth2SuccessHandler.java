@@ -35,37 +35,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 		CustomOAuth2User customOAuth2User = (CustomOAuth2User) authentication.getPrincipal();
 		User user = customOAuth2User.getUser();  // User 정보 가져오기
 
-
-
 		// ObjectMapper와 PrintWriter를 한번만 생성
 		ObjectMapper objectMapper = new ObjectMapper();
 		PrintWriter writer = response.getWriter();
 
 		try {
-			if (user.getEmail() == null || user.getEmail().isEmpty()) {
-				String token = jwtUtil.createJwt("verify", user.getEmail(), "pass", 1000 * 60 * 30L);
-				String email = user.getEmail();
-				MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
-				queryParams.add("verify",token);
-				queryParams.add("email",email);
-
-				String uri = UriComponentsBuilder
-					.newInstance()
-					.scheme("http")
-					.host("localhost:8080")
-					.path("/signup/success")
-					.queryParams(queryParams)
-					.build()
-					.toString();
-				response.sendRedirect(uri);
-
-			} else {
-				// 이름이 있는 경우, AccessToken 및 RefreshToken 발급
 				String accessToken = jwtUtil.createJwt("access", user.getEmail(), String.valueOf(user.getRole()), 60 * 1000L);
 				String refreshToken = jwtUtil.createJwt("refresh", user.getEmail(), String.valueOf(user.getRole()), 24 * 60 * 60 * 1000L);
 
-				// 응답 설정: AccessToken은 헤더, RefreshToken은 쿠키로 설정
-				response.setHeader("Authorization", "Bearer " + accessToken);
 				Cookie refreshCookie = cookieService.createCookie( "refresh", refreshToken, 24 * 60 * 60 * 1000L);
 				response.addCookie(refreshCookie);
 				response.setStatus(HttpStatus.OK.value());
@@ -77,7 +54,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 						"message", "Login successful",
 						"email", user.getEmail(),
 						"imgUrl",user.getImgUrl(),
-						"userName",user.getUsername()
+						"userName",user.getUsername(),
+						"role",user.getRole()
 					)
 				);
 
@@ -94,7 +72,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 					.build()
 					.toString();
 				response.sendRedirect(uri);
-			}
 		} catch (IOException e) {
 			// 에러 처리: 500 응답 전송
 			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
