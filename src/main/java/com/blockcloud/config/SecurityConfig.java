@@ -42,7 +42,9 @@ public class SecurityConfig {
                     "/login/success",
                     "/signup/success",
                     "/error",
-                    "/login/oauth2/code/google"
+                    "/login/oauth2/code/google",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
