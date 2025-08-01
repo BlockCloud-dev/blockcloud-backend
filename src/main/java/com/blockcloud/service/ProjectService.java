@@ -64,8 +64,8 @@ public class ProjectService {
 				.id(project.getId())
 				.name(project.getName())
 				.description(project.getDescription())
-				.createdAt(project.getCreateAt())
-				.updatedAt(project.getUpdateAt())
+				.createdAt(project.getCreatedAt())
+				.updatedAt(project.getUpdatedAt())
 				.build())
 			.build();
 	}
@@ -117,8 +117,8 @@ public class ProjectService {
 				.id(project.getId())
 				.name(project.getName())
 				.description(project.getDescription())
-				.createdAt(project.getCreateAt())
-				.updatedAt(project.getUpdateAt())
+				.createdAt(project.getCreatedAt())
+				.updatedAt(project.getUpdatedAt())
 				.build())
 			.build();
 	}
