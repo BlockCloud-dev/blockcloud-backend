@@ -25,11 +25,11 @@ public class Project {
 	@Column(columnDefinition = "TEXT")
 	private String description;
 
-	@Column(name = "create_at", updatable = false)
-	private LocalDateTime createAt;
+	@Column(name = "created_at", updatable = false)
+	private LocalDateTime createdAt;
 
-	@Column(name = "update_at")
-	private LocalDateTime updateAt;
+	@Column(name = "updated_at")
+	private LocalDateTime updatedAt;
 
 	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonIgnore
@@ -43,8 +43,8 @@ public class Project {
 
 	@PrePersist
 	public void onCreate() {
-		this.createAt = LocalDateTime.now();
-		this.updateAt = LocalDateTime.now();
+		this.createdAt = LocalDateTime.now();
+		this.updatedAt = LocalDateTime.now();
 	}
 
 	/**
@@ -52,7 +52,7 @@ public class Project {
 	 */
 	@PreUpdate
 	public void onUpdate() {
-		this.updateAt = LocalDateTime.now();
+		this.updatedAt = LocalDateTime.now();
 	}
 
 	/**
@@ -61,7 +61,7 @@ public class Project {
 	public void updateInfo(String name, String description) {
 		this.name = name;
 		this.description = description;
-		this.updateAt = LocalDateTime.now();
+		this.updatedAt = LocalDateTime.now();
 	}
 
 	/**

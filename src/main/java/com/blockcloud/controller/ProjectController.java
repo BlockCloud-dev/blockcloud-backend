@@ -1,6 +1,8 @@
 package com.blockcloud.controller;
 
+import com.blockcloud.dto.common.CommonResponse;
 import com.blockcloud.dto.RequestDto.ProjectRequestDto;
+import com.blockcloud.dto.ResponseDto.ProjectListResponseDto;
 import com.blockcloud.dto.ResponseDto.ProjectResponseDto;
 import com.blockcloud.dto.oauth.CustomUserDetails;
 import com.blockcloud.service.ProjectService;
@@ -11,11 +13,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * 프로젝트 관련 API 요청을 처리하는 컨트롤러입니다. 프로젝트 생성, 조회, 수정, 삭제 기능을 제공합니다.
@@ -54,14 +56,14 @@ public class ProjectController {
 			description = "생성할 프로젝트 정보 (name: 프로젝트 이름, description: 설명)",
 			required = true
 		)
-		@RequestBody ProjectRequestDto dto,
+		@RequestBody @Valid ProjectRequestDto dto,
 		Authentication authentication) {
 
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 		String email = userDetails.getUsername();
 
 		ProjectResponseDto response = projectService.create(dto, email);
-		return ResponseEntity.ok(response);
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
 	/**
@@ -77,11 +79,11 @@ public class ProjectController {
 	)
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200", description = "조회 성공",
-			content = @Content(mediaType = "application/json")),
+			content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProjectListResponseDto.class))),
 		@ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)")
 	})
 	@GetMapping
-	public ResponseEntity<Map<String, Object>> getProjects(
+	public ResponseEntity<ProjectListResponseDto> getProjects(
 		@Parameter(description = "마지막으로 조회한 프로젝트 ID (첫 호출 시 생략 가능)")
 		@RequestParam(required = false) Long lastId,
 		@Parameter(description = "가져올 데이터 개수 (기본값 8)")
@@ -105,6 +107,7 @@ public class ProjectController {
 		@ApiResponse(responseCode = "200", description = "수정 성공",
 			content = @Content(schema = @Schema(implementation = ProjectResponseDto.class))),
 		@ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)"),
+		@ApiResponse(responseCode = "403", description = "접근 권한 없음"),
 		@ApiResponse(responseCode = "404", description = "프로젝트를 찾을 수 없음")
 	})
 	@PutMapping("/{projectId}")
@@ -115,9 +118,13 @@ public class ProjectController {
 			description = "수정할 프로젝트 정보 (name, description 포함)",
 			required = true
 		)
-		@RequestBody ProjectRequestDto dto) {
+		@RequestBody @Valid ProjectRequestDto dto,
+		Authentication authentication) {
 
-		return ResponseEntity.ok(projectService.update(projectId, dto));
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		String email = userDetails.getUsername();
+
+		return ResponseEntity.ok(projectService.update(projectId, dto, email));
 	}
 
 	/**
@@ -132,19 +139,21 @@ public class ProjectController {
 	)
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200", description = "삭제 성공",
-			content = @Content(mediaType = "application/json")),
+			content = @Content(schema = @Schema(implementation = CommonResponse.class))),
 		@ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)"),
+		@ApiResponse(responseCode = "403", description = "접근 권한 없음"),
 		@ApiResponse(responseCode = "404", description = "프로젝트를 찾을 수 없음")
 	})
 	@DeleteMapping("/{projectId}")
-	public ResponseEntity<Map<String, Object>> delete(
+	public ResponseEntity<CommonResponse> delete(
 		@Parameter(description = "삭제할 프로젝트 ID", required = true)
-		@PathVariable Long projectId) {
+		@PathVariable Long projectId,
+		Authentication authentication) {
 
-		boolean deleted = projectService.delete(projectId);
-		return ResponseEntity.ok(Map.of(
-			"success", deleted,
-			"message", deleted ? "프로젝트를 성공적으로 삭제하였습니다." : "프로젝트를 찾을 수 없습니다."
-		));
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		String email = userDetails.getUsername();
+
+		projectService.delete(projectId, email);
+		return ResponseEntity.ok(new CommonResponse(true, "프로젝트를 성공적으로 삭제했습니다."));
 	}
 }
