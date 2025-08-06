@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: jdbc:mysql://prod-db-host:3306/blockcloud
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: prod_user
+    password: prod_secure_pass
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # 운영에선 구조 변경 금지
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  server:
+    port: 8080
