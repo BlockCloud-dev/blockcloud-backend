@@ -31,6 +31,13 @@ jobs:
           echo "CI_DATABASE_PASSWORD=" >> $GITHUB_ENV
           echo "CI_HIBERNATE_DIALECT=org.hibernate.dialect.H2Dialect" >> $GITHUB_ENV
 
+      - name: Debug environment variables
+        run: |
+          echo "CI_DATABASE_URL: $CI_DATABASE_URL"
+          echo "CI_DATABASE_DRIVER: $CI_DATABASE_DRIVER"
+          echo "CI_DATABASE_USERNAME: $CI_DATABASE_USERNAME"
+          echo "CI_HIBERNATE_DIALECT: $CI_HIBERNATE_DIALECT"
+
       - name: Create application.yml
         run: |
           mkdir -p src/main/resources
@@ -41,11 +48,18 @@ jobs:
           echo "${{ secrets.APPLICATION_YML_SECRET }}" > ./src/main/resources/application-secret.yml
           echo "${{ secrets.APPLICATION_YML_TEST }}" > ./src/test/resources/application.yml
 
+      - name: Debug created files
+        run: |
+          echo "=== Main application.yml ==="
+          cat ./src/main/resources/application.yml
+          echo "=== Test application.yml ==="
+          cat ./src/test/resources/application.yml
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Test with Gradle
-        run: ./gradlew --info test
+        run: ./gradlew test -Dspring.profiles.active=prod
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
