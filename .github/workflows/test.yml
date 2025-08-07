@@ -50,9 +50,12 @@ jobs:
 
       - name: Debug created files
         run: |
-          echo "=== Main application.yml ==="
+          echo "=== Checking if files exist ==="
+          ls -la src/main/resources/
+          ls -la src/test/resources/
+          echo "=== Main application.yml content ==="
           cat ./src/main/resources/application.yml
-          echo "=== Test application.yml ==="
+          echo "=== Test application.yml content ==="
           cat ./src/test/resources/application.yml
 
       - name: Grant execute permission for gradlew
