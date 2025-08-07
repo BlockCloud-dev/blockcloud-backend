@@ -3,7 +3,7 @@ permissions:
   contents: read
   checks: write
   issues: write
-  pull-requests: write  #
+  pull-requests: write
 
 on:
   pull_request:
@@ -26,7 +26,6 @@ jobs:
       - name: Create application.yml
         run: |
           mkdir -p src/main/resources
-          echo "${{ secrets.APPLICATION_YML }}" > ./src/main/resources/application.yml
           echo "${{ secrets.APPLICATION_YML_DEV }}" > ./src/main/resources/application-dev.yml
           echo "${{ secrets.APPLICATION_YML_PROD }}" > ./src/main/resources/application-prod.yml
           echo "${{ secrets.APPLICATION_YML_SECRET }}" > ./src/main/resources/application-secret.yml
