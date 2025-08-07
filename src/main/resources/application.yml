@@ -3,4 +3,4 @@ spring:
     name: "BlockCloud Main Server API"
   profiles:
     include: secret
-    active: dev
+    active: dev, secret
