@@ -59,7 +59,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Test with Gradle
-        run: ./gradlew test -Dspring.profiles.active=prod
+        run: ./gradlew test --info
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
