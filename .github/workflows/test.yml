@@ -30,6 +30,7 @@ jobs:
           echo "${{ secrets.APPLICATION_YML_DEV }}" > ./src/main/resources/application-dev.yml
           echo "${{ secrets.APPLICATION_YML_PROD }}" > ./src/main/resources/application-prod.yml
           echo "${{ secrets.APPLICATION_YML_SECRET }}" > ./src/main/resources/application-secret.yml
+          echo "${{ secrets.APPLICATION_YML_TEST }}" > ./src/test/resources/application.yml
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
