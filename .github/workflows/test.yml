@@ -23,6 +23,14 @@ jobs:
           java-version: '21'
           distribution: temurin
 
+      - name: Set CI environment variables
+        run: |
+          echo "CI_DATABASE_URL=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE" >> $GITHUB_ENV
+          echo "CI_DATABASE_DRIVER=org.h2.Driver" >> $GITHUB_ENV
+          echo "CI_DATABASE_USERNAME=sa" >> $GITHUB_ENV
+          echo "CI_DATABASE_PASSWORD=" >> $GITHUB_ENV
+          echo "CI_HIBERNATE_DIALECT=org.hibernate.dialect.H2Dialect" >> $GITHUB_ENV
+
       - name: Create application.yml
         run: |
           mkdir -p src/main/resources
