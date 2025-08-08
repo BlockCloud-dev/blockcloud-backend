@@ -1,7 +1,10 @@
 package com.blockcloud.controller;
 
 import com.blockcloud.dto.RequestDto.BlockSaveRequestDto;
+import com.blockcloud.dto.ResponseDto.BlockGetResponseDto;
 import com.blockcloud.dto.ResponseDto.BlockSaveResponseDto;
+import com.blockcloud.dto.common.ResponseDto;
+import com.blockcloud.dto.oauth.CustomUserDetails;
 import com.blockcloud.service.BlockService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,15 +14,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.Map;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Block API", description = "블록 아키텍처 저장 및 조회 API")
 @RestController
@@ -38,7 +36,7 @@ public class BlockController {
 	)
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200", description = "저장 성공",
-			content = @Content(schema = @Schema(implementation = BlockSaveResponseDto.class),
+			content = @Content(schema = @Schema(implementation = ResponseDto.class),
 				examples = @ExampleObject(value = """
 					{
 					  "success": true,
@@ -50,12 +48,13 @@ public class BlockController {
 					  }
 					}
 					"""))),
-		@ApiResponse(responseCode = "400", description = "INVALID_BLOCKS (블록 데이터가 유효하지 않음)"),
-		@ApiResponse(responseCode = "401", description = "UNAUTHORIZED (JWT 인증 필요)"),
-		@ApiResponse(responseCode = "404", description = "PROJECT_NOT_FOUND (해당 프로젝트 없음)")
+		@ApiResponse(responseCode = "400", description = "INVALID_ARGUMENT (요청 데이터 유효성 검증 실패)"),
+		@ApiResponse(responseCode = "401", description = "UNAUTHORIZED (인증 실패)"),
+		@ApiResponse(responseCode = "403", description = "ACCESS_DENIED (접근 권한 없음)"),
+		@ApiResponse(responseCode = "404", description = "NOT_FOUND_PROJECT (프로젝트를 찾을 수 없음)")
 	})
 	@PostMapping("/{projectId}")
-	public ResponseEntity<?> saveBlocks(
+	public ResponseDto<BlockSaveResponseDto> saveBlocks(
 		@Parameter(description = "블록을 저장할 프로젝트 ID", required = true)
 		@PathVariable Long projectId,
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -88,8 +87,12 @@ public class BlockController {
 				 }
 				"""))
 		)
-		@RequestBody BlockSaveRequestDto requestDto) {
-		return ResponseEntity.ok(blockService.saveBlocks(projectId, requestDto));
+		@Valid @RequestBody BlockSaveRequestDto requestDto,
+		Authentication authentication) {
+
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		return ResponseDto.ok(
+			blockService.saveBlocks(projectId, requestDto, userDetails.getUsername()));
 	}
 
 	/**
@@ -123,13 +126,16 @@ public class BlockController {
 				  ]
 				}
 				"""))),
-		@ApiResponse(responseCode = "401", description = "UNAUTHORIZED (JWT 인증 필요)"),
-		@ApiResponse(responseCode = "403", description = "FORBIDDEN (프로젝트 접근 권한 없음)"),
-		@ApiResponse(responseCode = "404", description = "PROJECT_NOT_FOUND (프로젝트 없음)")
+		@ApiResponse(responseCode = "401", description = "UNAUTHORIZED (인증 실패)"),
+		@ApiResponse(responseCode = "403", description = "ACCESS_DENIED (접근 권한 없음)"),
+		@ApiResponse(responseCode = "404", description = "NOT_FOUND_PROJECT (프로젝트를 찾을 수 없음)")
 	})
-
 	@GetMapping("/{projectId}")
-	public ResponseEntity<Map<String, Object>> getBlocks(@PathVariable Long projectId) {
-		return ResponseEntity.ok(blockService.getBlocks(projectId));
+	public ResponseDto<BlockGetResponseDto> getBlocks(
+		@Parameter(description = "블록을 조회할 프로젝트 ID", required = true) @PathVariable Long projectId,
+		Authentication authentication) {
+
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		return ResponseDto.ok(blockService.getBlocks(projectId, userDetails.getUsername()));
 	}
 }
