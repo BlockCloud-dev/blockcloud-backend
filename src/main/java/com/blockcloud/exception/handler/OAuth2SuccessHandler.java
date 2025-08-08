@@ -1,4 +1,4 @@
-package com.blockcloud.config.handler;
+package com.blockcloud.exception.handler;
 
 import com.blockcloud.domain.user.User;
 import com.blockcloud.dto.oauth.CustomOAuth2User;
@@ -17,8 +17,6 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 

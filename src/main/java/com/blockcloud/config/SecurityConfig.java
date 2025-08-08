@@ -1,7 +1,7 @@
 package com.blockcloud.config;
 
-import com.blockcloud.config.handler.CustomLogoutSuccessHandler;
-import com.blockcloud.config.handler.OAuth2SuccessHandler;
+import com.blockcloud.exception.handler.CustomLogoutSuccessHandler;
+import com.blockcloud.exception.handler.OAuth2SuccessHandler;
 import com.blockcloud.jwt.JWTFilter;
 import com.blockcloud.jwt.JWTUtil;
 import com.blockcloud.service.CookieService;

@@ -34,8 +34,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
-	// H2 데이터베이스 의존성 (주석 처리)
-	// runtimeOnly 'com.h2database:h2'
 	
 	// MySQL 의존성
 	runtimeOnly 'com.mysql:mysql-connector-j'
@@ -44,6 +42,7 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation("com.h2database:h2")
 
 	//oauth2
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
