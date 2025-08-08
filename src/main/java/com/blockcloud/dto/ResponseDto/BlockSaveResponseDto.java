@@ -4,20 +4,14 @@ import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 
+/**
+ * 블록 저장 응답 DTO
+ */
 @Getter
 @Builder
 public class BlockSaveResponseDto {
 
-	private boolean success;
-	private String message;
-	private BlockInfo data;
-
-	@Getter
-	@Builder
-	public static class BlockInfo {
-
-		private Long projectId;
-		private String architectureName;
-		private LocalDateTime updatedAt;
-	}
+	private Long projectId;
+	private String architectureName;
+	private LocalDateTime updatedAt;
 }
