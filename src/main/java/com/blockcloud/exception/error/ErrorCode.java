@@ -49,8 +49,9 @@ public enum ErrorCode {
 
     // External Server Error
     EXTERNAL_SERVER_ERROR(50200, HttpStatus.BAD_GATEWAY, "서버 외부 에러입니다."),
-    ;
 
+    // Project Errors
+    NOT_FOUND_PROJECT(40401, HttpStatus.NOT_FOUND, "존재하지 않는 프로젝트입니다.");
 
     private final Integer code;
     private final HttpStatus httpStatus;
