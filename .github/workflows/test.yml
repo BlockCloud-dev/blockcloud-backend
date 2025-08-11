@@ -27,11 +27,11 @@ jobs:
         run: |
           mkdir -p src/main/resources
           mkdir -p src/test/resources
-          echo "${{ secrets.APPLICATION_YML }}" > ./src/main/resources/application.yml
-          echo "${{ secrets.APPLICATION_YML_DEV }}" > ./src/main/resources/application-dev.yml
-          echo "${{ secrets.APPLICATION_YML_PROD }}" > ./src/main/resources/application-prod.yml
-          echo "${{ secrets.APPLICATION_YML_SECRET }}" > ./src/main/resources/application-secret.yml
-          echo "${{ secrets.APPLICATION_YML_TEST }}" > ./src/test/resources/application.yml
+          echo '${{ secrets.APPLICATION_YML }}' > ./src/main/resources/application.yml
+          echo '${{ secrets.APPLICATION_YML_DEV }}' > ./src/main/resources/application-dev.yml
+          echo '${{ secrets.APPLICATION_YML_PROD }}' > ./src/main/resources/application-prod.yml
+          echo '${{ secrets.APPLICATION_YML_SECRET }}' > ./src/main/resources/application-secret.yml
+          echo '${{ secrets.APPLICATION_YML_TEST }}' > ./src/test/resources/application.yml
 
       - name: Debug created files
         run: |
