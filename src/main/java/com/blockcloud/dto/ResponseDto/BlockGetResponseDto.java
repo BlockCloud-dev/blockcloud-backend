@@ -5,15 +5,13 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * 프로젝트 응답 DTO 프로젝트의 ID, 이름, 설명, 생성 및 수정 시간을 포함합니다.
+ * 블록 조회 성공 시 'data' 필드에 담길 응답 DTO
  */
 @Getter
 @Builder
-public class ProjectResponseDto {
+public class BlockGetResponseDto {
 
-	private Long id;
-	private String name;
-	private String description;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
+	private Object blocks;
 }
