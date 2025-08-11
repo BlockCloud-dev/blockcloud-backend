@@ -25,6 +25,9 @@ public class Project extends BaseTimeEntity {
 	@Column(columnDefinition = "TEXT")
 	private String description;
 
+	@Column(name = "block_info", columnDefinition = "LONGTEXT")
+	private String blockInfo;
+
 	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonIgnore
 	private List<ProjectUser> members = new ArrayList<>();
@@ -32,5 +35,9 @@ public class Project extends BaseTimeEntity {
 	public void updateInfo(String name, String description) {
 		this.name = name;
 		this.description = description;
+	}
+
+	public void updateArchitecture(String blockInfo) {
+		this.blockInfo = blockInfo;
 	}
 }

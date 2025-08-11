@@ -9,12 +9,13 @@ import com.blockcloud.domain.user.UserRepository;
 import com.blockcloud.dto.RequestDto.ProjectRequestDto;
 import com.blockcloud.dto.ResponseDto.ProjectListResponseDto;
 import com.blockcloud.dto.ResponseDto.ProjectResponseDto;
+import com.blockcloud.exception.CommonException;
+import com.blockcloud.exception.error.ErrorCode;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +42,7 @@ public class ProjectService {
 	public ProjectResponseDto create(ProjectRequestDto dto, String email) {
 		// 이메일로 사용자 조회
 		User user = userRepository.findByEmail(email)
-			.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_ACCOUNT));
 
 		// 프로젝트 엔티티 생성 및 저장
 		Project project = Project.builder()
@@ -57,17 +58,7 @@ public class ProjectService {
 			.build();
 		projectUserRepository.save(link);
 
-		// 응답 DTO 생성 및 반환
-		return ProjectResponseDto.builder()
-			.success(true)
-			.project(ProjectResponseDto.ProjectInfo.builder()
-				.id(project.getId())
-				.name(project.getName())
-				.description(project.getDescription())
-				.createdAt(project.getCreatedAt())
-				.updatedAt(project.getUpdatedAt())
-				.build())
-			.build();
+		return toProjectResponseDto(project);
 	}
 
 	/**
@@ -84,86 +75,90 @@ public class ProjectService {
 		// 프로젝트 목록 조회
 		List<Project> projects = projectRepository.findNextProjects(lastId, pageable);
 
-		// 다음 페이지 존재 여부 확인
-		boolean hasNext = projects.size() == size;
-
-		// DTO 변환
-		List<ProjectResponseDto.ProjectInfo> projectInfos = projects.stream()
-			.map(project -> ProjectResponseDto.ProjectInfo.builder()
-				.id(project.getId())
-				.name(project.getName())
-				.description(project.getDescription())
-				.createdAt(project.getCreatedAt())
-				.updatedAt(project.getUpdatedAt())
-				.build())
+		List<ProjectResponseDto> projectDtos = projects.stream()
+			.map(this::toProjectResponseDto)
 			.collect(Collectors.toList());
 
 		// 응답 DTO 생성 및 반환
 		return ProjectListResponseDto.builder()
-			.success(true)
-			.projects(projectInfos)
-			.hasNext(hasNext)
+			.projects(projectDtos)
+			.hasNext(projects.size() == size)
 			.build();
 	}
+
 
 	/**
 	 * 기존 프로젝트의 정보를 수정
 	 *
 	 * @param projectId 수정할 프로젝트 ID
 	 * @param dto       수정할 프로젝트 정보 (이름, 설명 등)
+	 * @param email     요청한 사용자의 이메일
 	 * @return 수정된 프로젝트 정보가 담긴 응답 DTO
-	 * @throws IllegalArgumentException 해당 ID의 프로젝트를 찾을 수 없는 경우 발생
-	 * @throws AccessDeniedException    사용자가 프로젝트의 멤버가 아닌 경우 발생
+	 * @throws CommonException 해당 프로젝트를 찾을 수 없는 경우 또는 접근 권한이 없는 경우 발생
 	 */
 	@Transactional
 	public ProjectResponseDto update(Long projectId, ProjectRequestDto dto, String email) {
-		Project project = projectRepository.findById(projectId)
-			.orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
-
-		boolean hasAccess = project.getMembers().stream()
-			.anyMatch(member -> member.getUser().getEmail().equals(email));
-
-		if (!hasAccess) {
-			throw new AccessDeniedException("프로젝트에 접근할 수 없습니다.");
-		}
+		Project project = findProjectById(projectId);
+		validateProjectMember(project, email);
 
 		project.updateInfo(dto.getName(), dto.getDescription());
-
-		return ProjectResponseDto.builder()
-			.success(true)
-			.project(ProjectResponseDto.ProjectInfo.builder()
-				.id(project.getId())
-				.name(project.getName())
-				.description(project.getDescription())
-				.createdAt(project.getCreatedAt())
-				.updatedAt(project.getUpdatedAt())
-				.build())
-			.build();
+		return toProjectResponseDto(project);
 	}
 
 	/**
 	 * 프로젝트를 삭제
 	 *
 	 * @param projectId 삭제할 프로젝트 ID
-	 * @param email     삭제를 요청한 사용자의 이메일
-	 * @throws IllegalArgumentException 해당 ID의 프로젝트를 찾을 수 없는 경우 발생
-	 * @throws AccessDeniedException    사용자가 프로젝트의 멤버가 아닌 경우 발생
+	 * @param email     요청한 사용자의 이메일
+	 * @throws CommonException 해당 프로젝트를 찾을 수 없는 경우 또는 접근 권한이 없는 경우 발생
 	 */
 	@Transactional
 	public void delete(Long projectId, String email) {
-		// 프로젝트 ID로 프로젝트 조회
-		Project project = projectRepository.findById(projectId)
-			.orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
-
-		// 사용자가 프로젝트의 멤버인지 확인
-		boolean hasAccess = project.getMembers().stream()
-			.anyMatch(member -> member.getUser().getEmail().equals(email));
-
-		// 접근 권한이 없으면 예외 발생
-		if (!hasAccess) {
-			throw new AccessDeniedException("프로젝트에 접근할 수 없습니다.");
-		}
-		// 프로젝트 삭제
+		Project project = findProjectById(projectId);
+		validateProjectMember(project, email);
 		projectRepository.delete(project);
+	}
+
+	/**
+	 * 프로젝트 ID로 프로젝트를 조회하고 존재하지 않으면 예외 발생
+	 *
+	 * @param projectId 조회할 프로젝트 ID
+	 * @return 해당 프로젝트 엔티티
+	 * @throws CommonException 해당 프로젝트를 찾을 수 없는 경우 발생
+	 */
+	private Project findProjectById(Long projectId) {
+		return projectRepository.findById(projectId)
+			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
+	}
+
+	/**
+	 * 프로젝트의 멤버인지 검증
+	 *
+	 * @param project 조회할 프로젝트
+	 * @param email   요청한 사용자의 이메일
+	 * @throws CommonException 접근 권한이 없는 경우 발생
+	 */
+	private void validateProjectMember(Project project, String email) {
+		boolean isMember = project.getMembers().stream()
+			.anyMatch(member -> member.getUser().getEmail().equals(email));
+		if (!isMember) {
+			throw new CommonException(ErrorCode.ACCESS_DENIED);
+		}
+	}
+
+	/**
+	 * Project 엔티티를 ProjectResponseDto로 변환
+	 *
+	 * @param project 변환할 프로젝트 엔티티
+	 * @return 변환된 응답 DTO
+	 */
+	private ProjectResponseDto toProjectResponseDto(Project project) {
+		return ProjectResponseDto.builder()
+			.id(project.getId())
+			.name(project.getName())
+			.description(project.getDescription())
+			.createdAt(project.getCreatedAt())
+			.updatedAt(project.getUpdatedAt())
+			.build();
 	}
 }

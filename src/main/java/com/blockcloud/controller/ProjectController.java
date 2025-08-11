@@ -1,9 +1,9 @@
 package com.blockcloud.controller;
 
-import com.blockcloud.dto.common.CommonResponse;
 import com.blockcloud.dto.RequestDto.ProjectRequestDto;
 import com.blockcloud.dto.ResponseDto.ProjectListResponseDto;
 import com.blockcloud.dto.ResponseDto.ProjectResponseDto;
+import com.blockcloud.dto.common.ResponseDto;
 import com.blockcloud.dto.oauth.CustomUserDetails;
 import com.blockcloud.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,8 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,13 +24,10 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Project API", description = "프로젝트 생성, 조회, 수정, 삭제 관련 API")
 @RestController
 @RequestMapping("/api/projects")
+@RequiredArgsConstructor
 public class ProjectController {
 
 	private final ProjectService projectService;
-
-	public ProjectController(ProjectService projectService) {
-		this.projectService = projectService;
-	}
 
 	/**
 	 * 새로운 프로젝트를 생성합니다.
@@ -45,25 +41,17 @@ public class ProjectController {
 		description = "새로운 프로젝트를 생성합니다. 요청 바디에 `name`, `description`을 포함해야 하며, JWT 토큰이 필요합니다."
 	)
 	@ApiResponses(value = {
-		@ApiResponse(responseCode = "200", description = "프로젝트 생성 성공",
-			content = @Content(schema = @Schema(implementation = ProjectResponseDto.class))),
-		@ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-		@ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)")
+		@ApiResponse(responseCode = "201", description = "프로젝트 생성 성공",
+			content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+		@ApiResponse(responseCode = "400", description = "INVALID_ARGUMENT (요청 데이터 유효성 검증 실패)"),
+		@ApiResponse(responseCode = "401", description = "UNAUTHORIZED (인증 실패)")
 	})
 	@PostMapping
-	public ResponseEntity<ProjectResponseDto> create(
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(
-			description = "생성할 프로젝트 정보 (name: 프로젝트 이름, description: 설명)",
-			required = true
-		)
-		@RequestBody @Valid ProjectRequestDto dto,
+	public ResponseDto<ProjectResponseDto> create(
+		@Valid @RequestBody ProjectRequestDto dto,
 		Authentication authentication) {
-
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-		String email = userDetails.getUsername();
-
-		ProjectResponseDto response = projectService.create(dto, email);
-		return ResponseEntity.status(HttpStatus.CREATED).body(response);
+		return ResponseDto.created(projectService.create(dto, userDetails.getUsername()));
 	}
 
 	/**
@@ -79,17 +67,15 @@ public class ProjectController {
 	)
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200", description = "조회 성공",
-			content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProjectListResponseDto.class))),
-		@ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)")
+			content = @Content(schema = @Schema(implementation = ResponseDto.class)))
 	})
 	@GetMapping
-	public ResponseEntity<ProjectListResponseDto> getProjects(
+	public ResponseDto<ProjectListResponseDto> getProjects(
 		@Parameter(description = "마지막으로 조회한 프로젝트 ID (첫 호출 시 생략 가능)")
 		@RequestParam(required = false) Long lastId,
 		@Parameter(description = "가져올 데이터 개수 (기본값 8)")
 		@RequestParam(defaultValue = "8") int size) {
-
-		return ResponseEntity.ok(projectService.findNext(lastId, size));
+		return ResponseDto.ok(projectService.findNext(lastId, size));
 	}
 
 	/**
@@ -105,26 +91,19 @@ public class ProjectController {
 	)
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200", description = "수정 성공",
-			content = @Content(schema = @Schema(implementation = ProjectResponseDto.class))),
-		@ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)"),
-		@ApiResponse(responseCode = "403", description = "접근 권한 없음"),
-		@ApiResponse(responseCode = "404", description = "프로젝트를 찾을 수 없음")
+			content = @Content(schema = @Schema(implementation = ResponseDto.class))),
+		@ApiResponse(responseCode = "400", description = "INVALID_ARGUMENT (요청 데이터 유효성 검증 실패)"),
+		@ApiResponse(responseCode = "401", description = "UNAUTHORIZED (인증 실패)"),
+		@ApiResponse(responseCode = "403", description = "FORBIDDEN (접근 권한 없음)"),
+		@ApiResponse(responseCode = "404", description = "NOT_FOUND (프로젝트를 찾을 수 없음)")
 	})
 	@PutMapping("/{projectId}")
-	public ResponseEntity<ProjectResponseDto> update(
-		@Parameter(description = "수정할 프로젝트 ID", required = true)
-		@PathVariable Long projectId,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(
-			description = "수정할 프로젝트 정보 (name, description 포함)",
-			required = true
-		)
-		@RequestBody @Valid ProjectRequestDto dto,
+	public ResponseDto<ProjectResponseDto> update(
+		@Parameter(description = "수정할 프로젝트 ID", required = true) @PathVariable Long projectId,
+		@Valid @RequestBody ProjectRequestDto dto,
 		Authentication authentication) {
-
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-		String email = userDetails.getUsername();
-
-		return ResponseEntity.ok(projectService.update(projectId, dto, email));
+		return ResponseDto.ok(projectService.update(projectId, dto, userDetails.getUsername()));
 	}
 
 	/**
@@ -138,22 +117,18 @@ public class ProjectController {
 		description = "프로젝트를 삭제합니다. JWT 인증 필요."
 	)
 	@ApiResponses(value = {
-		@ApiResponse(responseCode = "200", description = "삭제 성공",
-			content = @Content(schema = @Schema(implementation = CommonResponse.class))),
-		@ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)"),
-		@ApiResponse(responseCode = "403", description = "접근 권한 없음"),
-		@ApiResponse(responseCode = "404", description = "프로젝트를 찾을 수 없음")
+		@ApiResponse(responseCode = "204", description = "삭제 성공"),
+		@ApiResponse(responseCode = "401", description = "UNAUTHORIZED (인증 실패)"),
+		@ApiResponse(responseCode = "403", description = "FORBIDDEN (접근 권한 없음)"),
+		@ApiResponse(responseCode = "404", description = "NOT_FOUND (프로젝트를 찾을 수 없음)")
 	})
 	@DeleteMapping("/{projectId}")
-	public ResponseEntity<CommonResponse> delete(
+	public ResponseDto<Object> delete(
 		@Parameter(description = "삭제할 프로젝트 ID", required = true)
 		@PathVariable Long projectId,
 		Authentication authentication) {
-
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-		String email = userDetails.getUsername();
-
-		projectService.delete(projectId, email);
-		return ResponseEntity.ok(new CommonResponse(true, "프로젝트를 성공적으로 삭제했습니다."));
+		projectService.delete(projectId, userDetails.getUsername());
+		return ResponseDto.noContent();
 	}
 }
