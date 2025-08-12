@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 env:
   DOCKER_IMAGE: leeeunda/blockcloud-server
@@ -44,8 +44,8 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}      # <<< CHANGE(secrets): Docker Hub ID
-          password: ${{ secrets.DOCKER_PASSWORD }}      # <<< CHANGE(secrets): Docker Hub PAT/비번
+          username: ${{ secrets.DOCKER_USERNAME }}   
+          password: ${{ secrets.DOCKER_PASSWORD }}     
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
