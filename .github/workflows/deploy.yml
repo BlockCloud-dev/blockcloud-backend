@@ -1,8 +1,9 @@
 name: Deploy with Docker Hub
 
 on:
-  push:
+  pull_request:
     branches: [ develop, main ]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 env:
   DOCKER_IMAGE: leeeunda/blockcloud-server
@@ -57,9 +58,9 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.DOCKER_IMAGE }}:pr-${{ github.event.number }}
-            ${{ env.DOCKER_IMAGE }}:${{ github.event.pull_request.head.sha }}
-            ${{ env.DOCKER_IMAGE }}:${{ github.event.pull_request.head.ref }}
+            ${{ env.DOCKER_IMAGE }}:latest
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+            ${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           # platforms: linux/amd64  # Graviton이면 linux/arm64
