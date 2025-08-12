@@ -2,9 +2,7 @@ name: Deploy with Docker Hub
 
 on:
   push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+    branches: [ develop, main ]
 
 env:
   DOCKER_IMAGE: leeeunda/blockcloud-server
@@ -12,9 +10,11 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    continue-on-error: true  # 급배포용(테스트 실패해도 다음 진행)
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -37,56 +37,51 @@ jobs:
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}   
-          password: ${{ secrets.DOCKER_PASSWORD }}     
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 만약 EC2가 Graviton(ARM64)이면 platform 지정 필요
-      # with: platforms: linux/arm64
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ${{ env.DOCKER_IMAGE }}:latest
-            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
-            ${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}
+            ${{ env.DOCKER_IMAGE }}:pr-${{ github.event.number }}
+            ${{ env.DOCKER_IMAGE }}:${{ github.event.pull_request.head.sha }}
+            ${{ env.DOCKER_IMAGE }}:${{ github.event.pull_request.head.ref }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # platforms: linux/amd64   # <<< CHANGE(옵션): EC2가 x86_64면 유지, ARM이면 linux/arm64 로
+          # platforms: linux/amd64  # Graviton이면 linux/arm64
 
   deploy-to-ec2:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Deploy to EC2 (pull & replace container)
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.EC2_HOST }}       # <<< CHANGE(secrets): EC2 퍼블릭 도메인/IP
-          username: ${{ secrets.EC2_USER }}   # <<< CHANGE(secrets): 일반 ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}     # <<< CHANGE(secrets): PEM 본문
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            IMAGE="${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
-            echo "Pull $IMAGE"
+            IMAGE="${{ env.DOCKER_IMAGE }}:${{ github.event.pull_request.head.sha }}"
             docker pull "$IMAGE"
 
-            echo "Stop & remove old container"
             docker stop blockcloud-app || true
             docker rm blockcloud-app || true
 
-            echo "Run new container (bind only localhost)"
             docker run -d \
               --name blockcloud-app \
               --restart unless-stopped \
@@ -94,16 +89,12 @@ jobs:
               -p 127.0.0.1:8080:8080 \
               "$IMAGE"
 
-            echo "Health check"
-            # <<< CHANGE(필요시): 액추에이터 경로가 다르면 아래 URL 수정
-            for i in {1..20}; do
+            for i in {1..30}; do
               if curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null 2>&1; then
                 echo "UP"
                 exit 0
               fi
               sleep 3
             done
-
-            echo "App failed to start. Logs:"
             docker logs --tail=200 blockcloud-app || true
             exit 1
