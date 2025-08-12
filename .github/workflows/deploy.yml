@@ -2,9 +2,9 @@ name: Deploy with Docker Hub
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 env:
   DOCKER_IMAGE: leeeunda/blockcloud-server
