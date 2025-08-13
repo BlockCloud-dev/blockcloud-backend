@@ -102,15 +102,21 @@ jobs:
               "$IMAGE"
 
             # 헬스체크
-            for i in {1..30}; do
+            echo "🏥 헬스체크 시작 (최대 60초 대기)..."
+            for i in {1..20}; do
               if curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null 2>&1; then
                 echo "✅ Application is UP and healthy!"
+                echo "🎉 배포 성공!"
                 exit 0
+              else
+                echo "⏳ Waiting for application to start... (${i}/20)"
+                sleep 3
               fi
-              echo "⏳ Waiting for application to start... ($i/30)"
-              sleep 3
             done
 
             echo "❌ Application failed to start properly"
-            docker logs --tail=200 blockcloud-app || true
+            echo "📊 컨테이너 상태:"
+            docker ps -a | grep blockcloud-app || true
+            echo "📋 컨테이너 로그:"
+            docker logs --tail=100 blockcloud-app || true
             exit 1
