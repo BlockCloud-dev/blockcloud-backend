@@ -75,7 +75,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to EC2 (pull & replace container)
-      # EC2에 SSH 접속해 배포
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -93,7 +92,7 @@ jobs:
             docker stop blockcloud-app || true
             docker rm blockcloud-app || true
 
-            # 새 컨테이너 실행 (컨테이너 이름은 이미지와 달라도 됨)
+            # 새 컨테이너 실행
             docker run -d \
               --name blockcloud-app \
               --restart unless-stopped \
