@@ -3,7 +3,7 @@ FROM gradle:8.7-jdk21 AS build
 WORKDIR /app
 COPY gradlew ./
 COPY gradle gradle
-COPY build.gradle settings.gradle ./
+COPY build.gradle settings.gradle version.properties ./
 RUN ./gradlew dependencies --no-daemon || true
 COPY src src
 RUN ./gradlew clean bootJar -x test -x jacocoTestCoverageVerification -x jacocoTestReport --no-daemon
