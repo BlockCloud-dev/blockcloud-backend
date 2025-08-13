@@ -53,7 +53,8 @@ public class SecurityConfig {
                     "/error",
                     "/login/oauth2/code/google",
                     "/swagger-ui/**",
-                    "/v3/api-docs/**"
+                    "/v3/api-docs/**",
+                    "/actuator/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
