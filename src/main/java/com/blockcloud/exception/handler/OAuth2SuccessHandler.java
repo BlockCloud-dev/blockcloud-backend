@@ -62,8 +62,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
 				String uri = UriComponentsBuilder
 					.newInstance()
-					.scheme("http")
-					.host("https://blockcloud.dev")
+					.scheme("https")
+					.host("blockcloud.dev")
 					.path("/login/success")
 					.queryParam("user", encodedJson)
 					.queryParam("access", accessToken)
