@@ -52,7 +52,13 @@ public enum ErrorCode {
     EXTERNAL_SERVER_ERROR(50200, HttpStatus.BAD_GATEWAY, "서버 외부 에러입니다."),
 
     // Project Errors
-    NOT_FOUND_PROJECT(40401, HttpStatus.NOT_FOUND, "존재하지 않는 프로젝트입니다.");
+    NOT_FOUND_PROJECT(40401, HttpStatus.NOT_FOUND, "존재하지 않는 프로젝트입니다."),
+
+    // Deployment Errors
+    NOT_FOUND_DEPLOYMENT(40402, HttpStatus.NOT_FOUND, "존재하지 않는 배포입니다."),
+    DEPLOYMENT_ALREADY_RUNNING(40901, HttpStatus.CONFLICT, "이미 실행 중인 배포가 있습니다."),
+    TERRAFORM_VALIDATION_FAILED(40010, HttpStatus.BAD_REQUEST, "Terraform 코드 검증에 실패했습니다."),
+    TERRAFORM_APPLY_FAILED(50002, HttpStatus.INTERNAL_SERVER_ERROR, "Terraform 배포에 실패했습니다.");
 
     private final Integer code;
     private final HttpStatus httpStatus;
