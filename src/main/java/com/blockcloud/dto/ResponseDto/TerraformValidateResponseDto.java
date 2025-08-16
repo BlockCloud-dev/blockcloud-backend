@@ -10,6 +10,6 @@ import java.util.List;
 public class TerraformValidateResponseDto {
 
 	private boolean isValid;
-	private List<String> errors;
-	private List<String> warnings;
+	private String output;
+	private String errorMessage;
 }

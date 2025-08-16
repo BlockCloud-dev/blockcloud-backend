@@ -1,10 +1,12 @@
 package com.blockcloud.controller;
 
 import com.blockcloud.dto.RequestDto.TerraformApplyRequestDto;
+import com.blockcloud.dto.RequestDto.TerraformPlanRequestDto;
 import com.blockcloud.dto.RequestDto.TerraformValidateRequestDto;
 import com.blockcloud.dto.ResponseDto.DeploymentListResponseDto;
 import com.blockcloud.dto.ResponseDto.DeploymentStatusResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformApplyResponseDto;
+import com.blockcloud.dto.ResponseDto.TerraformPlanResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformValidateResponseDto;
 import com.blockcloud.dto.common.ResponseDto;
 import com.blockcloud.dto.oauth.CustomUserDetails;
@@ -44,6 +46,24 @@ public class TerraformController {
 		@Parameter(description = "프로젝트 ID", required = true) @PathVariable Long projectId,
 		@Valid @RequestBody TerraformValidateRequestDto requestDto) {
 		return ResponseDto.ok(terraformService.validateTerraform(projectId, requestDto));
+	}
+
+	/**
+	 * Terraform 코드의 변경 사항을 미리 확인합니다.
+	 *
+	 * @param projectId 프로젝트 ID
+	 * @param requestDto Terraform plan 요청
+	 * @return plan 결과가 담긴 응답 객체
+	 */
+	@Operation(
+		summary = "Terraform 코드 Plan",
+		description = "Terraform 코드를 실행했을 때 어떤 변경 사항이 발생할지 미리 확인합니다. 실제 배포는 하지 않습니다."
+	)
+	@PostMapping("/plan")
+	public ResponseDto<TerraformPlanResponseDto> planTerraform(
+		@Parameter(description = "프로젝트 ID", required = true) @PathVariable Long projectId,
+		@Valid @RequestBody TerraformPlanRequestDto requestDto) {
+		return ResponseDto.ok(terraformService.planTerraform(projectId, requestDto));
 	}
 
 	/**

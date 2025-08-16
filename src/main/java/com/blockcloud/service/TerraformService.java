@@ -6,10 +6,12 @@ import com.blockcloud.domain.deployment.DeploymentStatus;
 import com.blockcloud.domain.project.Project;
 import com.blockcloud.domain.project.ProjectRepository;
 import com.blockcloud.dto.RequestDto.TerraformApplyRequestDto;
+import com.blockcloud.dto.RequestDto.TerraformPlanRequestDto;
 import com.blockcloud.dto.RequestDto.TerraformValidateRequestDto;
 import com.blockcloud.dto.ResponseDto.DeploymentListResponseDto;
 import com.blockcloud.dto.ResponseDto.DeploymentStatusResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformApplyResponseDto;
+import com.blockcloud.dto.ResponseDto.TerraformPlanResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformValidateResponseDto;
 import com.blockcloud.exception.CommonException;
 import com.blockcloud.exception.error.ErrorCode;
@@ -19,16 +21,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
@@ -39,6 +33,7 @@ public class TerraformService {
 
 	private final ProjectRepository projectRepository;
 	private final DeploymentRepository deploymentRepository;
+	private final TerraformExecutor terraformExecutor;
 
 	/**
 	 * Terraform 코드를 검증합니다.
@@ -47,47 +42,32 @@ public class TerraformService {
 		Project project = projectRepository.findById(projectId)
 			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
 
-		try {
-			// 임시 디렉토리 생성
-			String tempDir = createTempDirectory(projectId);
-			String terraformFile = tempDir + "/main.tf";
-			
-			// Terraform 파일 생성
-			writeTerraformFile(terraformFile, requestDto.getTerraformCode());
-			
-			// Terraform validate 실행
-			ProcessBuilder processBuilder = new ProcessBuilder("terraform", "validate");
-			processBuilder.directory(new File(tempDir));
-			
-			Process process = processBuilder.start();
-			int exitCode = process.waitFor();
-			
-			List<String> errors = new ArrayList<>();
-			List<String> warnings = new ArrayList<>();
-			
-			if (exitCode != 0) {
-				// 에러 출력 읽기
-				String errorOutput = new String(process.getErrorStream().readAllBytes());
-				errors.add(errorOutput);
-			}
-			
-			// 임시 디렉토리 정리
-			cleanupTempDirectory(tempDir);
-			
-			return TerraformValidateResponseDto.builder()
-				.isValid(exitCode == 0)
-				.errors(errors)
-				.warnings(warnings)
-				.build();
-				
-		} catch (Exception e) {
-			log.error("Terraform validation failed for project {}: {}", projectId, e.getMessage());
-			return TerraformValidateResponseDto.builder()
-				.isValid(false)
-				.errors(List.of("Terraform 검증 중 오류가 발생했습니다: " + e.getMessage()))
-				.warnings(new ArrayList<>())
-				.build();
-		}
+		TerraformExecutor.TerraformExecutionResult result = terraformExecutor.validate(requestDto.getTerraformCode());
+		
+		return TerraformValidateResponseDto.builder()
+			.isValid(result.isSuccess())
+			.output(result.getOutput())
+			.errorMessage(result.getError())
+			.build();
+	}
+
+	/**
+	 * Terraform 코드의 변경 사항을 미리 확인합니다.
+	 */
+	public TerraformPlanResponseDto planTerraform(Long projectId, TerraformPlanRequestDto requestDto) {
+		Project project = projectRepository.findById(projectId)
+			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
+
+		TerraformExecutor.TerraformExecutionResult result = terraformExecutor.plan(requestDto.getTerraformCode());
+		
+		// Terraform plan의 exit code: 0=성공, 1=에러, 2=변경사항 있음
+		boolean hasChanges = result.getExitCode() == 2;
+		
+		return TerraformPlanResponseDto.builder()
+			.hasChanges(hasChanges)
+			.planOutput(result.getOutput())
+			.errorMessage(result.getError())
+			.build();
 	}
 
 	/**
@@ -186,79 +166,21 @@ public class TerraformService {
 
 	// Private helper methods
 
-	private String createTempDirectory(Long projectId) throws IOException {
-		String tempDir = System.getProperty("java.io.tmpdir") + "/terraform-" + projectId + "-" + UUID.randomUUID();
-		Files.createDirectories(Paths.get(tempDir));
-		return tempDir;
-	}
-
-	private void writeTerraformFile(String filePath, String terraformCode) throws IOException {
-		try (FileWriter writer = new FileWriter(filePath)) {
-			writer.write(terraformCode);
-		}
-	}
-
-	private void cleanupTempDirectory(String tempDir) {
-		try {
-			Path path = Paths.get(tempDir);
-			Files.walk(path)
-				.sorted((a, b) -> b.compareTo(a))
-				.forEach(p -> {
-					try {
-						Files.delete(p);
-					} catch (IOException e) {
-						log.warn("Failed to delete temp file: {}", p);
-					}
-				});
-		} catch (IOException e) {
-			log.warn("Failed to cleanup temp directory: {}", tempDir);
-		}
-	}
-
 	private void executeTerraformApply(Long deploymentId, Long projectId, String terraformCode) {
 		try {
 			// 상태를 RUNNING으로 업데이트
 			updateDeploymentStatus(deploymentId, DeploymentStatus.RUNNING, "배포 실행 중");
 
-			// 임시 디렉토리 생성
-			String tempDir = createTempDirectory(projectId);
-			String terraformFile = tempDir + "/main.tf";
-			
-			// Terraform 파일 생성
-			writeTerraformFile(terraformFile, terraformCode);
-			
-			// Terraform init 실행
-			ProcessBuilder initBuilder = new ProcessBuilder("terraform", "init");
-			initBuilder.directory(new File(tempDir));
-			Process initProcess = initBuilder.start();
-			int initExitCode = initProcess.waitFor();
-			
-			if (initExitCode != 0) {
-				String errorOutput = new String(initProcess.getErrorStream().readAllBytes());
-				updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "Terraform 초기화 실패: " + errorOutput);
-				cleanupTempDirectory(tempDir);
-				return;
-			}
-			
 			// Terraform apply 실행
-			ProcessBuilder applyBuilder = new ProcessBuilder("terraform", "apply", "-auto-approve");
-			applyBuilder.directory(new File(tempDir));
-			Process applyProcess = applyBuilder.start();
-			int applyExitCode = applyProcess.waitFor();
+			TerraformExecutor.TerraformExecutionResult result = terraformExecutor.apply(terraformCode);
 			
-			String output = new String(applyProcess.getInputStream().readAllBytes());
-			String errorOutput = new String(applyProcess.getErrorStream().readAllBytes());
-			
-			if (applyExitCode == 0) {
+			if (result.isSuccess()) {
 				updateDeploymentStatus(deploymentId, DeploymentStatus.SUCCESS, "배포 성공");
-				updateDeploymentOutput(deploymentId, output);
+				updateDeploymentOutput(deploymentId, result.getOutput());
 			} else {
-				updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "배포 실패: " + errorOutput);
-				updateDeploymentOutput(deploymentId, errorOutput);
+				updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "배포 실패: " + result.getError());
+				updateDeploymentOutput(deploymentId, result.getError());
 			}
-			
-			// 임시 디렉토리 정리
-			cleanupTempDirectory(tempDir);
 			
 		} catch (Exception e) {
 			updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "배포 중 오류 발생: " + e.getMessage());

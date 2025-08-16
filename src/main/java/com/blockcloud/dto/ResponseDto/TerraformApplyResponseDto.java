@@ -13,4 +13,6 @@ public class TerraformApplyResponseDto {
 	private String status;
 	private String message;
 	private LocalDateTime startedAt;
+	private String output;
+	private String errorMessage;
 }
