@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -45,16 +47,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                     "email", user.getEmail(),
                     "imgUrl", user.getImgUrl(),
                     "userName", user.getUsername(),
-                    "role", user.getRole(),
-                    "access", accessToken
+                    "role", user.getRole()
                 )
             );
+			String redirectUrl =  "https://app.blockcloud.com/oauth2/callback"
+				+ "?access=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8)
+				+ "&user=" + URLEncoder.encode(userJson, StandardCharsets.UTF_8);
 
-            try (PrintWriter writer = response.getWriter()) {
-                writer.write(userJson);
-                writer.flush();
-            }
-
+			response.sendRedirect(redirectUrl);
         } catch (IOException e) {
             e.printStackTrace();
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
