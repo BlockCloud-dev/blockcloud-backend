@@ -6,11 +6,13 @@ import com.blockcloud.domain.deployment.DeploymentStatus;
 import com.blockcloud.domain.project.Project;
 import com.blockcloud.domain.project.ProjectRepository;
 import com.blockcloud.dto.RequestDto.TerraformApplyRequestDto;
+import com.blockcloud.dto.RequestDto.TerraformDestroyRequestDto;
 import com.blockcloud.dto.RequestDto.TerraformPlanRequestDto;
 import com.blockcloud.dto.RequestDto.TerraformValidateRequestDto;
 import com.blockcloud.dto.ResponseDto.DeploymentListResponseDto;
 import com.blockcloud.dto.ResponseDto.DeploymentStatusResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformApplyResponseDto;
+import com.blockcloud.dto.ResponseDto.TerraformDestroyResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformPlanResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformValidateResponseDto;
 import com.blockcloud.exception.CommonException;
@@ -108,6 +110,43 @@ public class TerraformService {
 	}
 
 	/**
+	 * Terraform 코드를 실행하여 인프라를 삭제합니다.
+	 */
+	@Transactional
+	public TerraformDestroyResponseDto destroyTerraform(Long projectId, TerraformDestroyRequestDto requestDto, String username) {
+		Project project = projectRepository.findById(projectId)
+			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
+
+		// 배포 이력 생성 (삭제용)
+		Deployment deployment = Deployment.builder()
+			.project(project)
+			.status(DeploymentStatus.PENDING)
+			.message("인프라 삭제 대기 중")
+			.terraformCode(requestDto.getTerraformCode())
+			.startedAt(LocalDateTime.now())
+			.build();
+
+		Deployment savedDeployment = deploymentRepository.save(deployment);
+
+		// 비동기로 삭제 실행
+		CompletableFuture.runAsync(() -> {
+			try {
+				executeTerraformDestroy(savedDeployment.getId(), projectId, requestDto.getTerraformCode());
+			} catch (Exception e) {
+				log.error("Terraform destroy failed for deployment {}: {}", savedDeployment.getId(), e.getMessage());
+				updateDeploymentStatus(savedDeployment.getId(), DeploymentStatus.FAILED, "삭제 실패: " + e.getMessage());
+			}
+		});
+
+		return TerraformDestroyResponseDto.builder()
+			.deploymentId(savedDeployment.getId())
+			.status("PENDING")
+			.message("인프라 삭제가 시작되었습니다.")
+			.startedAt(savedDeployment.getStartedAt())
+			.build();
+	}
+
+	/**
 	 * 배포 상태를 조회합니다.
 	 */
 	public DeploymentStatusResponseDto getDeploymentStatus(Long projectId, Long deploymentId) {
@@ -184,6 +223,27 @@ public class TerraformService {
 			
 		} catch (Exception e) {
 			updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "배포 중 오류 발생: " + e.getMessage());
+		}
+	}
+
+	private void executeTerraformDestroy(Long deploymentId, Long projectId, String terraformCode) {
+		try {
+			// 상태를 RUNNING으로 업데이트
+			updateDeploymentStatus(deploymentId, DeploymentStatus.RUNNING, "인프라 삭제 실행 중");
+
+			// Terraform destroy 실행
+			TerraformExecutor.TerraformExecutionResult result = terraformExecutor.destroy(terraformCode);
+			
+			if (result.isSuccess()) {
+				updateDeploymentStatus(deploymentId, DeploymentStatus.SUCCESS, "인프라 삭제 성공");
+				updateDeploymentOutput(deploymentId, result.getOutput());
+			} else {
+				updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "인프라 삭제 실패: " + result.getError());
+				updateDeploymentOutput(deploymentId, result.getError());
+			}
+			
+		} catch (Exception e) {
+			updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "인프라 삭제 중 오류 발생: " + e.getMessage());
 		}
 	}
 

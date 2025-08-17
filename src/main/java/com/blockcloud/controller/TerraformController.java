@@ -1,11 +1,13 @@
 package com.blockcloud.controller;
 
 import com.blockcloud.dto.RequestDto.TerraformApplyRequestDto;
+import com.blockcloud.dto.RequestDto.TerraformDestroyRequestDto;
 import com.blockcloud.dto.RequestDto.TerraformPlanRequestDto;
 import com.blockcloud.dto.RequestDto.TerraformValidateRequestDto;
 import com.blockcloud.dto.ResponseDto.DeploymentListResponseDto;
 import com.blockcloud.dto.ResponseDto.DeploymentStatusResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformApplyResponseDto;
+import com.blockcloud.dto.ResponseDto.TerraformDestroyResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformPlanResponseDto;
 import com.blockcloud.dto.ResponseDto.TerraformValidateResponseDto;
 import com.blockcloud.dto.common.ResponseDto;
@@ -85,6 +87,27 @@ public class TerraformController {
 		Authentication authentication) {
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 		return ResponseDto.ok(terraformService.applyTerraform(projectId, requestDto, userDetails.getUsername()));
+	}
+
+	/**
+	 * Terraform 코드를 실행하여 인프라를 삭제합니다.
+	 *
+	 * @param projectId 프로젝트 ID
+	 * @param requestDto Terraform 삭제 요청
+	 * @param authentication 인증 정보
+	 * @return 삭제 시작 정보가 담긴 응답 객체
+	 */
+	@Operation(
+		summary = "Terraform 인프라 삭제",
+		description = "Terraform 코드를 실행하여 생성된 인프라를 삭제합니다. 배포는 비동기로 실행되며, 삭제 ID를 반환합니다."
+	)
+	@PostMapping("/destroy")
+	public ResponseDto<TerraformDestroyResponseDto> destroyTerraform(
+		@Parameter(description = "프로젝트 ID", required = true) @PathVariable Long projectId,
+		@Valid @RequestBody TerraformDestroyRequestDto requestDto,
+		Authentication authentication) {
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		return ResponseDto.ok(terraformService.destroyTerraform(projectId, requestDto, userDetails.getUsername()));
 	}
 
 	/**

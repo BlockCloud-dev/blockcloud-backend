@@ -125,6 +125,39 @@ public class TerraformExecutor {
 	}
 
 	/**
+	 * Terraform destroy를 실행하여 인프라를 삭제합니다.
+	 *
+	 * @param terraformCode Terraform 코드
+	 * @return destroy 실행 결과
+	 */
+	public TerraformExecutionResult destroy(String terraformCode) {
+		return executeCommand(terraformCode, "destroy -auto-approve");
+	}
+
+	/**
+	 * Terraform 전체 워크플로우를 실행합니다 (validate -> plan -> apply).
+	 *
+	 * @param terraformCode Terraform 코드
+	 * @return 최종 실행 결과
+	 */
+	public TerraformExecutionResult runFullWorkflow(String terraformCode) {
+		// 1. Validate
+		TerraformExecutionResult validateResult = validate(terraformCode);
+		if (!validateResult.isSuccess()) {
+			return validateResult;
+		}
+
+		// 2. Plan
+		TerraformExecutionResult planResult = plan(terraformCode);
+		if (!planResult.isSuccess()) {
+			return planResult;
+		}
+
+		// 3. Apply
+		return apply(terraformCode);
+	}
+
+	/**
 	 * 작업 디렉토리를 정리합니다.
 	 */
 	private void cleanupDirectory(Path directory) {

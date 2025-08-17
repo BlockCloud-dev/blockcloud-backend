@@ -8,7 +8,7 @@ import java.util.List;
 @Getter
 @Builder
 public class TerraformValidateResponseDto {
-
+	
 	private boolean isValid;
 	private String output;
 	private String errorMessage;
