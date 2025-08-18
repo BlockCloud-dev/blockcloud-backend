@@ -63,7 +63,7 @@ public class TokenRestController {
 		String role = jwtUtil.getRole(refresh);
 
         // Create new tokens
-        String newAccess = jwtUtil.createJwt("access", email, role, 24 * 60 * 60 * 1000L); // 1시간
+        String newAccess = jwtUtil.createJwt("access", email, role, 30 * 60 * 1000L); // 30분
         String refreshToken = jwtUtil.createJwt("refresh", email, role, 24 * 60 * 60 * 1000L);
 
         // Set refresh token in cookie

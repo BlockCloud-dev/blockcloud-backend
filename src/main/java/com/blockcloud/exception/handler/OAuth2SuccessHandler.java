@@ -38,7 +38,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 		PrintWriter writer = response.getWriter();
 
 		try {
-				String accessToken = jwtUtil.createJwt("access", user.getEmail(), String.valueOf(user.getRole()), 60 * 1000L);
+				String accessToken = jwtUtil.createJwt("access", user.getEmail(), String.valueOf(user.getRole()), 30 * 60 * 1000L);
 				String refreshToken = jwtUtil.createJwt("refresh", user.getEmail(), String.valueOf(user.getRole()), 24 * 60 * 60 * 1000L);
 
 				Cookie refreshCookie = cookieService.createCookie( "refresh", refreshToken, 24 * 60 * 60 * 1000L);
