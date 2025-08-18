@@ -99,11 +99,15 @@ public class TerraformService {
 			updateDeploymentStatus(savedDeployment.getId(), DeploymentStatus.FAILED, "배포 실패: " + e.getMessage());
 		}
 
+		// 최신 배포 상태 조회
+		Deployment updatedDeployment = deploymentRepository.findById(savedDeployment.getId())
+			.orElse(savedDeployment);
+		
 		return TerraformApplyResponseDto.builder()
-			.deploymentId(savedDeployment.getId())
-			.status("PENDING")
-			.message("배포가 시작되었습니다.")
-			.startedAt(savedDeployment.getStartedAt())
+			.deploymentId(updatedDeployment.getId())
+			.status(updatedDeployment.getStatus().name())
+			.message(updatedDeployment.getMessage())
+			.startedAt(updatedDeployment.getStartedAt())
 			.build();
 	}
 
@@ -215,12 +219,12 @@ public class TerraformService {
 				updateDeploymentStatus(deploymentId, DeploymentStatus.SUCCESS, "배포 성공");
 				updateDeploymentOutput(deploymentId, result.getOutput());
 			} else {
-				updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "배포 실패: " + result.getError());
+				updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "배포 실패");
 				updateDeploymentOutput(deploymentId, result.getError());
 			}
 			
 		} catch (Exception e) {
-			updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "배포 중 오류 발생: " + e.getMessage());
+			updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "배포 중 오류 발생");
 		}
 	}
 
@@ -236,12 +240,12 @@ public class TerraformService {
 				updateDeploymentStatus(deploymentId, DeploymentStatus.SUCCESS, "인프라 삭제 성공");
 				updateDeploymentOutput(deploymentId, result.getOutput());
 			} else {
-				updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "인프라 삭제 실패: " + result.getError());
+				updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "인프라 삭제 실패");
 				updateDeploymentOutput(deploymentId, result.getError());
 			}
 			
 		} catch (Exception e) {
-			updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "인프라 삭제 중 오류 발생: " + e.getMessage());
+			updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, "인프라 삭제 중 오류 발생");
 		}
 	}
 
