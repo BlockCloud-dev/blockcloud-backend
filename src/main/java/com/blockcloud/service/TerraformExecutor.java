@@ -16,28 +16,19 @@ import java.util.UUID;
 public class TerraformExecutor {
 
 	private static final String BASE_DIR = "/tmp/terraform/";
+	private static final String TERRAFORM_PATH = "/usr/local/bin/terraform"; // Terraform 절대 경로
 
-	/**
-	 * Terraform 명령어를 실행합니다.
-	 *
-	 * @param terraformCode Terraform 코드
-	 * @param command 실행할 명령어 (init, validate, plan, apply 등)
-	 * @return 실행 결과
-	 */
 	public TerraformExecutionResult executeCommand(String terraformCode, String command) {
 		String projectId = UUID.randomUUID().toString();
 		Path workDir = Paths.get(BASE_DIR, projectId);
 
 		try {
-			// 작업 디렉토리 생성
 			Files.createDirectories(workDir);
 
-			// Terraform 파일 생성
 			Path terraformFile = workDir.resolve("main.tf");
 			Files.writeString(terraformFile, terraformCode);
 
-			// Terraform init 실행
-			ProcessBuilder initBuilder = new ProcessBuilder("terraform", "init", "-input=false")
+			ProcessBuilder initBuilder = new ProcessBuilder(TERRAFORM_PATH, "init", "-input=false")
 				.directory(workDir.toFile());
 			Process initProcess = initBuilder.start();
 			int initExitCode = initProcess.waitFor();
@@ -52,20 +43,16 @@ public class TerraformExecutor {
 					.build();
 			}
 
-			// 요청된 명령어 실행
-			List<String> cmd = new ArrayList<>(List.of("terraform"));
+			List<String> cmd = new ArrayList<>(List.of(TERRAFORM_PATH));
 			cmd.addAll(List.of(command.split(" ")));
-			
-			ProcessBuilder builder = new ProcessBuilder(cmd)
-				.directory(workDir.toFile());
+
+			ProcessBuilder builder = new ProcessBuilder(cmd).directory(workDir.toFile());
 			Process process = builder.start();
 
-			// 출력과 에러 스트림 읽기
 			String output = new String(process.getInputStream().readAllBytes());
 			String error = new String(process.getErrorStream().readAllBytes());
 			int exitCode = process.waitFor();
 
-			// 작업 디렉토리 정리
 			cleanupDirectory(workDir);
 
 			return TerraformExecutionResult.builder()
@@ -77,14 +64,11 @@ public class TerraformExecutor {
 
 		} catch (Exception e) {
 			log.error("Terraform 명령어 실행 중 오류 발생: {}", e.getMessage(), e);
-			
-			// 작업 디렉토리 정리
 			try {
 				cleanupDirectory(workDir);
 			} catch (Exception cleanupException) {
 				log.warn("작업 디렉토리 정리 중 오류: {}", cleanupException.getMessage());
 			}
-
 			return TerraformExecutionResult.builder()
 				.success(false)
 				.exitCode(-1)
@@ -94,77 +78,37 @@ public class TerraformExecutor {
 		}
 	}
 
-	/**
-	 * Terraform plan을 실행하여 변경 사항을 미리 확인합니다.
-	 *
-	 * @param terraformCode Terraform 코드
-	 * @return plan 실행 결과
-	 */
 	public TerraformExecutionResult plan(String terraformCode) {
 		return executeCommand(terraformCode, "plan -detailed-exitcode");
 	}
 
-	/**
-	 * Terraform validate를 실행하여 코드를 검증합니다.
-	 *
-	 * @param terraformCode Terraform 코드
-	 * @return validate 실행 결과
-	 */
 	public TerraformExecutionResult validate(String terraformCode) {
 		return executeCommand(terraformCode, "validate");
 	}
 
-	/**
-	 * Terraform apply를 실행하여 인프라를 배포합니다.
-	 *
-	 * @param terraformCode Terraform 코드
-	 * @return apply 실행 결과
-	 */
 	public TerraformExecutionResult apply(String terraformCode) {
 		return executeCommand(terraformCode, "apply -auto-approve");
 	}
 
-	/**
-	 * Terraform destroy를 실행하여 인프라를 삭제합니다.
-	 *
-	 * @param terraformCode Terraform 코드
-	 * @return destroy 실행 결과
-	 */
 	public TerraformExecutionResult destroy(String terraformCode) {
 		return executeCommand(terraformCode, "destroy -auto-approve");
 	}
 
-	/**
-	 * Terraform 전체 워크플로우를 실행합니다 (validate -> plan -> apply).
-	 *
-	 * @param terraformCode Terraform 코드
-	 * @return 최종 실행 결과
-	 */
 	public TerraformExecutionResult runFullWorkflow(String terraformCode) {
-		// 1. Validate
 		TerraformExecutionResult validateResult = validate(terraformCode);
-		if (!validateResult.isSuccess()) {
-			return validateResult;
-		}
+		if (!validateResult.isSuccess()) return validateResult;
 
-		// 2. Plan
 		TerraformExecutionResult planResult = plan(terraformCode);
-		if (!planResult.isSuccess()) {
-			return planResult;
-		}
+		if (!planResult.isSuccess()) return planResult;
 
-		// 3. Apply
 		return apply(terraformCode);
 	}
 
-	/**
-	 * 작업 디렉토리를 정리합니다.
-	 */
 	private void cleanupDirectory(Path directory) {
 		try {
 			if (Files.exists(directory)) {
 				Files.walk(directory)
-					.sorted((a, b) -> b.compareTo(a)) // 하위 디렉토리부터 삭제
+					.sorted((a, b) -> b.compareTo(a))
 					.forEach(path -> {
 						try {
 							Files.delete(path);
@@ -178,9 +122,6 @@ public class TerraformExecutor {
 		}
 	}
 
-	/**
-	 * Terraform 실행 결과를 담는 내부 클래스
-	 */
 	public static class TerraformExecutionResult {
 		private final boolean success;
 		private final int exitCode;
@@ -195,20 +136,9 @@ public class TerraformExecutor {
 			this.error = error;
 		}
 
-		public boolean isSuccess() {
-			return success;
-		}
-
-		public int getExitCode() {
-			return exitCode;
-		}
-
-		public String getOutput() {
-			return output;
-		}
-
-		public String getError() {
-			return error;
-		}
+		public boolean isSuccess() { return success; }
+		public int getExitCode() { return exitCode; }
+		public String getOutput() { return output; }
+		public String getError() { return error; }
 	}
 }
