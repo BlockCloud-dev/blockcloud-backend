@@ -16,7 +16,7 @@ import java.util.UUID;
 public class TerraformExecutor {
 
 	private static final String BASE_DIR = "/tmp/terraform/";
-	private static final String TERRAFORM_PATH = "/usr/local/bin/terraform"; // Terraform 절대 경로
+	private static final String TERRAFORM_PATH = "terraform"; // PATH에서 terraform 찾기
 
 	public TerraformExecutionResult executeCommand(String terraformCode, String command) {
 		String projectId = UUID.randomUUID().toString();
