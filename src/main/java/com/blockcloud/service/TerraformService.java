@@ -91,15 +91,13 @@ public class TerraformService {
 
 		Deployment savedDeployment = deploymentRepository.save(deployment);
 
-		// 비동기로 배포 실행
-		CompletableFuture.runAsync(() -> {
-			try {
-				executeTerraformApply(savedDeployment.getId(), projectId, requestDto.getTerraformCode());
-			} catch (Exception e) {
-				log.error("Terraform apply failed for deployment {}: {}", savedDeployment.getId(), e.getMessage());
-				updateDeploymentStatus(savedDeployment.getId(), DeploymentStatus.FAILED, "배포 실패: " + e.getMessage());
-			}
-		});
+		// 동기로 배포 실행
+		try {
+			executeTerraformApply(savedDeployment.getId(), projectId, requestDto.getTerraformCode());
+		} catch (Exception e) {
+			log.error("Terraform apply failed for deployment {}: {}", savedDeployment.getId(), e.getMessage());
+			updateDeploymentStatus(savedDeployment.getId(), DeploymentStatus.FAILED, "배포 실패: " + e.getMessage());
+		}
 
 		return TerraformApplyResponseDto.builder()
 			.deploymentId(savedDeployment.getId())
