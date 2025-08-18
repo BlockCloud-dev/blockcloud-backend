@@ -50,7 +50,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                     "role", user.getRole()
                 )
             );
-			String redirectUrl =  "https://app.blockcloud.com/oauth2/callback"
+			String redirectUrl =  "https://blockcloud.dev/oauth2/callback"
 				+ "?access=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8)
 				+ "&user=" + URLEncoder.encode(userJson, StandardCharsets.UTF_8);
 
