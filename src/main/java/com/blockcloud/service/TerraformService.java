@@ -40,10 +40,7 @@ public class TerraformService {
 	/**
 	 * Terraform 코드를 검증합니다.
 	 */
-	public TerraformValidateResponseDto validateTerraform(Long projectId, TerraformValidateRequestDto requestDto) {
-		Project project = projectRepository.findById(projectId)
-			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
-
+	public TerraformValidateResponseDto validateTerraform(TerraformValidateRequestDto requestDto) {
 		TerraformExecutor.TerraformExecutionResult result = terraformExecutor.validate(requestDto.getTerraformCode());
 		
 		return TerraformValidateResponseDto.builder()
@@ -52,6 +49,7 @@ public class TerraformService {
 			.errorMessage(result.getError())
 			.build();
 	}
+
 
 	/**
 	 * Terraform 코드의 변경 사항을 미리 확인합니다.
