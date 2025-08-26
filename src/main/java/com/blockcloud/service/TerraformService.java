@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+
 
 @Slf4j
 @Service
@@ -130,21 +130,23 @@ public class TerraformService {
 
 		Deployment savedDestroyDeployment = deploymentRepository.save(destroyDeployment);
 
-		// 비동기로 삭제 실행
-		CompletableFuture.runAsync(() -> {
-			try {
-				executeTerraformDestroy(savedDestroyDeployment.getId(), projectId, deployment.getTerraformCode());
-			} catch (Exception e) {
-				log.error("Terraform destroy failed for deployment {}: {}", savedDestroyDeployment.getId(), e.getMessage());
-				updateDeploymentStatus(savedDestroyDeployment.getId(), DeploymentStatus.FAILED, "삭제 실패: " + e.getMessage());
-			}
-		});
+		// 동기로 삭제 실행
+		try {
+			executeTerraformDestroy(savedDestroyDeployment.getId(), projectId, deployment.getTerraformCode());
+		} catch (Exception e) {
+			log.error("Terraform destroy failed for deployment {}: {}", savedDestroyDeployment.getId(), e.getMessage());
+			updateDeploymentStatus(savedDestroyDeployment.getId(), DeploymentStatus.FAILED, "삭제 실패: " + e.getMessage());
+		}
 
+		// 최신 배포 상태 조회
+		Deployment updatedDeployment = deploymentRepository.findById(savedDestroyDeployment.getId())
+			.orElse(savedDestroyDeployment);
+		
 		return TerraformDestroyResponseDto.builder()
-			.deploymentId(savedDestroyDeployment.getId())
-			.status("PENDING")
-			.message("인프라 삭제가 시작되었습니다.")
-			.startedAt(savedDestroyDeployment.getStartedAt())
+			.deploymentId(updatedDeployment.getId())
+			.status(updatedDeployment.getStatus().name())
+			.message(updatedDeployment.getMessage())
+			.startedAt(updatedDeployment.getStartedAt())
 			.build();
 	}
 
