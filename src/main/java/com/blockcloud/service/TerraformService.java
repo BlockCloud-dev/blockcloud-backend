@@ -37,6 +37,9 @@ public class TerraformService {
 	private final DeploymentRepository deploymentRepository;
 	private final TerraformExecutor terraformExecutor;
 
+	/**
+	 * Terraform 코드를 검증합니다.
+	 */
 	public TerraformValidateResponseDto validateTerraform(TerraformValidateRequestDto requestDto) {
 		TerraformExecutor.TerraformExecutionResult result = terraformExecutor.validate(requestDto.getTerraformCode());
 		
@@ -47,6 +50,9 @@ public class TerraformService {
 			.build();
 	}
 
+	/**
+	 * Terraform 코드의 변경 사항을 미리 확인합니다.
+	 */
 	public TerraformPlanResponseDto planTerraform(Long projectId, TerraformPlanRequestDto requestDto) {
 		Project project = projectRepository.findById(projectId)
 			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
@@ -138,8 +144,6 @@ public class TerraformService {
 			.startedAt(savedDestroyDeployment.getStartedAt())
 			.build();
 	}
-
-
 
 	public DeploymentStatusResponseDto getDeploymentStatus(Long projectId, Long deploymentId) {
 		Project project = projectRepository.findById(projectId)
