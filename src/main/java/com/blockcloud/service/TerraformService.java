@@ -6,7 +6,7 @@ import com.blockcloud.domain.deployment.DeploymentStatus;
 import com.blockcloud.domain.project.Project;
 import com.blockcloud.domain.project.ProjectRepository;
 import com.blockcloud.dto.RequestDto.TerraformApplyRequestDto;
-import com.blockcloud.dto.RequestDto.TerraformDestroyRequestDto;
+
 import com.blockcloud.dto.RequestDto.TerraformPlanRequestDto;
 import com.blockcloud.dto.RequestDto.TerraformValidateRequestDto;
 import com.blockcloud.dto.ResponseDto.DeploymentListResponseDto;
@@ -37,9 +37,6 @@ public class TerraformService {
 	private final DeploymentRepository deploymentRepository;
 	private final TerraformExecutor terraformExecutor;
 
-	/**
-	 * Terraform 코드를 검증합니다.
-	 */
 	public TerraformValidateResponseDto validateTerraform(TerraformValidateRequestDto requestDto) {
 		TerraformExecutor.TerraformExecutionResult result = terraformExecutor.validate(requestDto.getTerraformCode());
 		
@@ -50,9 +47,6 @@ public class TerraformService {
 			.build();
 	}
 
-	/**
-	 * Terraform 코드의 변경 사항을 미리 확인합니다.
-	 */
 	public TerraformPlanResponseDto planTerraform(Long projectId, TerraformPlanRequestDto requestDto) {
 		Project project = projectRepository.findById(projectId)
 			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
@@ -145,39 +139,7 @@ public class TerraformService {
 			.build();
 	}
 
-	@Transactional
-	public TerraformDestroyResponseDto destroyTerraform(Long projectId, TerraformDestroyRequestDto requestDto, String username) {
-		Project project = projectRepository.findById(projectId)
-			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
 
-		// 배포 이력 생성 (삭제용)
-		Deployment deployment = Deployment.builder()
-			.project(project)
-			.status(DeploymentStatus.PENDING)
-			.message("인프라 삭제 대기 중")
-			.terraformCode(requestDto.getTerraformCode())
-			.startedAt(LocalDateTime.now())
-			.build();
-
-		Deployment savedDeployment = deploymentRepository.save(deployment);
-
-		// 비동기로 삭제 실행
-		CompletableFuture.runAsync(() -> {
-			try {
-				executeTerraformDestroy(savedDeployment.getId(), projectId, requestDto.getTerraformCode());
-			} catch (Exception e) {
-				log.error("Terraform destroy failed for deployment {}: {}", savedDeployment.getId(), e.getMessage());
-				updateDeploymentStatus(savedDeployment.getId(), DeploymentStatus.FAILED, "삭제 실패: " + e.getMessage());
-			}
-		});
-
-		return TerraformDestroyResponseDto.builder()
-			.deploymentId(savedDeployment.getId())
-			.status("PENDING")
-			.message("인프라 삭제가 시작되었습니다.")
-			.startedAt(savedDeployment.getStartedAt())
-			.build();
-	}
 
 	public DeploymentStatusResponseDto getDeploymentStatus(Long projectId, Long deploymentId) {
 		Project project = projectRepository.findById(projectId)
