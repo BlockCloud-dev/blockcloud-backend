@@ -37,9 +37,6 @@ public class TerraformService {
 	private final DeploymentRepository deploymentRepository;
 	private final TerraformExecutor terraformExecutor;
 
-	/**
-	 * Terraform 코드를 검증합니다.
-	 */
 	public TerraformValidateResponseDto validateTerraform(Long projectId, TerraformValidateRequestDto requestDto) {
 		Project project = projectRepository.findById(projectId)
 			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
@@ -53,9 +50,6 @@ public class TerraformService {
 			.build();
 	}
 
-	/**
-	 * Terraform 코드의 변경 사항을 미리 확인합니다.
-	 */
 	public TerraformPlanResponseDto planTerraform(Long projectId, TerraformPlanRequestDto requestDto) {
 		Project project = projectRepository.findById(projectId)
 			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
@@ -72,9 +66,6 @@ public class TerraformService {
 			.build();
 	}
 
-	/**
-	 * Terraform 코드를 적용하여 배포를 시작합니다.
-	 */
 	@Transactional
 	public TerraformApplyResponseDto applyTerraform(Long projectId, TerraformApplyRequestDto requestDto, String username) {
 		Project project = projectRepository.findById(projectId)
@@ -109,9 +100,48 @@ public class TerraformService {
 			.build();
 	}
 
-	/**
-	 * Terraform 코드를 실행하여 인프라를 삭제합니다.
-	 */
+	@Transactional
+	public TerraformDestroyResponseDto destroyTerraformByDeployment(Long projectId, Long deploymentId, String username) {
+		Project project = projectRepository.findById(projectId)
+			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
+
+		Deployment deployment = deploymentRepository.findById(deploymentId)
+			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_DEPLOYMENT));
+
+		// 프로젝트에 속한 배포인지 확인
+		if (!deployment.getProject().getId().equals(projectId)) {
+			throw new CommonException(ErrorCode.ACCESS_DENIED);
+		}
+
+		// 삭제용 배포 이력 생성
+		Deployment destroyDeployment = Deployment.builder()
+			.project(project)
+			.status(DeploymentStatus.PENDING)
+			.message("인프라 삭제 대기 중")
+			.terraformCode(deployment.getTerraformCode())
+			.startedAt(LocalDateTime.now())
+			.build();
+
+		Deployment savedDestroyDeployment = deploymentRepository.save(destroyDeployment);
+
+		// 비동기로 삭제 실행
+		CompletableFuture.runAsync(() -> {
+			try {
+				executeTerraformDestroy(savedDestroyDeployment.getId(), projectId, deployment.getTerraformCode());
+			} catch (Exception e) {
+				log.error("Terraform destroy failed for deployment {}: {}", savedDestroyDeployment.getId(), e.getMessage());
+				updateDeploymentStatus(savedDestroyDeployment.getId(), DeploymentStatus.FAILED, "삭제 실패: " + e.getMessage());
+			}
+		});
+
+		return TerraformDestroyResponseDto.builder()
+			.deploymentId(savedDestroyDeployment.getId())
+			.status("PENDING")
+			.message("인프라 삭제가 시작되었습니다.")
+			.startedAt(savedDestroyDeployment.getStartedAt())
+			.build();
+	}
+
 	@Transactional
 	public TerraformDestroyResponseDto destroyTerraform(Long projectId, TerraformDestroyRequestDto requestDto, String username) {
 		Project project = projectRepository.findById(projectId)
@@ -146,9 +176,6 @@ public class TerraformService {
 			.build();
 	}
 
-	/**
-	 * 배포 상태를 조회합니다.
-	 */
 	public DeploymentStatusResponseDto getDeploymentStatus(Long projectId, Long deploymentId) {
 		Project project = projectRepository.findById(projectId)
 			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
@@ -171,9 +198,6 @@ public class TerraformService {
 			.build();
 	}
 
-	/**
-	 * 프로젝트의 배포 이력을 조회합니다.
-	 */
 	public DeploymentListResponseDto getDeploymentHistory(Long projectId, Long lastId, int size) {
 		Project project = projectRepository.findById(projectId)
 			.orElseThrow(() -> new CommonException(ErrorCode.NOT_FOUND_PROJECT));
@@ -203,7 +227,6 @@ public class TerraformService {
 			.build();
 	}
 
-	// Private helper methods
 
 	private void executeTerraformApply(Long deploymentId, Long projectId, String terraformCode) {
 		try {

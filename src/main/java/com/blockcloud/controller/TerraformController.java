@@ -90,16 +90,37 @@ public class TerraformController {
 	}
 
 	/**
+	 * 특정 배포의 인프라를 삭제합니다.
+	 *
+	 * @param projectId 프로젝트 ID
+	 * @param deploymentId 배포 ID
+	 * @param authentication 인증 정보
+	 * @return 삭제 결과가 담긴 응답 객체
+	 */
+	@Operation(
+		summary = "특정 배포 인프라 삭제",
+		description = "특정 배포의 인프라를 삭제합니다. 원본 배포의 Terraform 코드를 사용하여 삭제를 수행합니다."
+	)
+	@DeleteMapping("/deployments/{deploymentId}/destroy")
+	public ResponseDto<TerraformDestroyResponseDto> destroyTerraformByDeployment(
+		@Parameter(description = "프로젝트 ID", required = true) @PathVariable Long projectId,
+		@Parameter(description = "배포 ID", required = true) @PathVariable Long deploymentId,
+		Authentication authentication) {
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		return ResponseDto.ok(terraformService.destroyTerraformByDeployment(projectId, deploymentId, userDetails.getUsername()));
+	}
+
+	/**
 	 * Terraform 코드를 실행하여 인프라를 삭제합니다.
 	 *
 	 * @param projectId 프로젝트 ID
 	 * @param requestDto Terraform 삭제 요청
 	 * @param authentication 인증 정보
-	 * @return 삭제 시작 정보가 담긴 응답 객체
+	 * @return 삭제 결과가 담긴 응답 객체
 	 */
 	@Operation(
-		summary = "Terraform 인프라 삭제",
-		description = "Terraform 코드를 실행하여 생성된 인프라를 삭제합니다. 배포는 비동기로 실행되며, 삭제 ID를 반환합니다."
+		summary = "Terraform 인프라 삭제 (코드 기반)",
+		description = "Terraform 코드를 실행하여 생성된 인프라를 삭제합니다. 배포는 동기로 실행되며, 삭제 결과를 즉시 반환합니다."
 	)
 	@PostMapping("/destroy")
 	public ResponseDto<TerraformDestroyResponseDto> destroyTerraform(
