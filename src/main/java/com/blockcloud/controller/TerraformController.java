@@ -35,7 +35,6 @@ public class TerraformController {
 	/**
 	 * Terraform 코드를 검증합니다.
 	 *
-	 * @param projectId 프로젝트 ID
 	 * @param requestDto Terraform 코드 검증 요청
 	 * @return 검증 결과가 담긴 응답 객체
 	 */
@@ -45,9 +44,8 @@ public class TerraformController {
 	)
 	@PostMapping("/validate")
 	public ResponseDto<TerraformValidateResponseDto> validateTerraform(
-		@Parameter(description = "프로젝트 ID", required = true) @PathVariable Long projectId,
 		@Valid @RequestBody TerraformValidateRequestDto requestDto) {
-		return ResponseDto.ok(terraformService.validateTerraform(projectId, requestDto));
+		return ResponseDto.ok(terraformService.validateTerraform(requestDto));
 	}
 
 	/**
