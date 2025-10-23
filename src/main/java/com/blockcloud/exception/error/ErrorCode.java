@@ -58,7 +58,15 @@ public enum ErrorCode {
     NOT_FOUND_DEPLOYMENT(40402, HttpStatus.NOT_FOUND, "존재하지 않는 배포입니다."),
     DEPLOYMENT_ALREADY_RUNNING(40901, HttpStatus.CONFLICT, "이미 실행 중인 배포가 있습니다."),
     TERRAFORM_VALIDATION_FAILED(40010, HttpStatus.BAD_REQUEST, "Terraform 코드 검증에 실패했습니다."),
-    TERRAFORM_APPLY_FAILED(50002, HttpStatus.INTERNAL_SERVER_ERROR, "Terraform 배포에 실패했습니다.");
+    TERRAFORM_APPLY_FAILED(50002, HttpStatus.INTERNAL_SERVER_ERROR, "Terraform 배포에 실패했습니다."),
+
+    // AWS Cost Explorer Errors
+    AWS_DATA_UNAVAILABLE(50301, HttpStatus.SERVICE_UNAVAILABLE, "AWS 비용 데이터를 사용할 수 없습니다. 충분한 과거 데이터가 없거나 아직 준비되지 않았습니다."),
+    AWS_LIMIT_EXCEEDED(42901, HttpStatus.TOO_MANY_REQUESTS, "AWS API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요."),
+    AWS_COST_EXPLORER_ERROR(50201, HttpStatus.BAD_GATEWAY, "AWS Cost Explorer API 호출에 실패했습니다."),
+    AWS_HISTORICAL_DATA_LIMIT(40013, HttpStatus.BAD_REQUEST, "AWS Cost Explorer는 최대 13개월의 과거 데이터만 제공합니다."),
+    AWS_FORECAST_LIMIT(40014, HttpStatus.BAD_REQUEST, "AWS Cost Explorer 예측은 최대 3개월의 미래 데이터만 제공합니다."),
+    AWS_INSUFFICIENT_DATA(40015, HttpStatus.BAD_REQUEST, "예측을 위한 충분한 과거 데이터가 없습니다. 최소 2개월 이상의 과거 데이터가 필요합니다.");
 
     private final Integer code;
     private final HttpStatus httpStatus;
