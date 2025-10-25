@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: back-deployment
+  labels:
+    app: back-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: back-app
+  template:
+    metadata:
+      labels:
+        app: back-app
+    spec:
+      containers:
+        - name: back-container
+          image: blockcloud.kr.ncr.ntruss.com/blockcloud/backend-app:latest
+          ports:
+            - containerPort: 8080
