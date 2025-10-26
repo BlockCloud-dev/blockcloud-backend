@@ -13,6 +13,7 @@ public class CookieService {
 		cookie.setMaxAge((int) (maxAge / 1000)); // 밀리초를 초 단위로 변환
 		cookie.setHttpOnly(true);
 		cookie.setSecure(true); // HTTPS 사용 시
+		cookie.setDomain(".blockcloud.dev");
 		cookie.setPath("/");
 		return cookie;
 	}
