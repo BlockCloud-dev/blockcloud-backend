@@ -72,3 +72,30 @@ jobs:
           file: Dockerfile
           push: true
           tags: ${{ env.NCP_REGISTRY }}/${{ env.NCR_REPO }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: 5. YAML 수정 도구(yq) 설치 (Go 버전)
+        run: |
+          YQ_VERSION="v4.40.5" # 안정 버전 사용
+          wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+          
+      - name: 6. Deployment YAML 파일 태그 업데이트 및 커밋
+        env:
+          YAML_FILE: back-deployment.yaml
+          MANIFEST_REPO_URL: https://github.com/BlockCloud-dev/blockcloud-manifest
+          NEW_TAG: ${{ env.NCP_REGISTRY }}/${{ env.NCR_REPO }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          
+          git clone $MANIFEST_REPO_URL manifest-repo
+          cd manifest-repo
+          
+          export NEW_TAG=$NEW_TAG
+          
+          yq e '.spec.template.spec.containers[0].image = env(NEW_TAG)' -i $YAML_FILE
+          
+          git add $YAML_FILE
+          git commit -m "CD: Update front-end image to ${{ env.IMAGE_TAG }}" || echo "No changes to commit"
+          
+          git push https://${{ github.actor }}:${{ secrets.MANIFEST_REPO_PAT }}@github.com/BlockCloud-dev/blockcloud-manifest.git
