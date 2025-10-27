@@ -4,7 +4,7 @@ import com.blockcloud.domain.global.BaseTimeEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-
+import com.blockcloud.domain.deployment.Deployment;
 import java.util.ArrayList;
 import java.util.List;
 
