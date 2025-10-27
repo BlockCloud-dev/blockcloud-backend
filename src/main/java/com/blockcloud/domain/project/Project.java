@@ -32,6 +32,10 @@ public class Project extends BaseTimeEntity {
 	@JsonIgnore
 	private List<ProjectUser> members = new ArrayList<>();
 
+	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonIgnore
+	private List<Deployment> deployments = new ArrayList<>();
+	
 	public void updateInfo(String name, String description) {
 		this.name = name;
 		this.description = description;
