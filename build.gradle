@@ -48,6 +48,15 @@ dependencies {
 	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 	
+	// AWS SDK v2
+	implementation platform('software.amazon.awssdk:bom:2.21.0')
+	implementation 'software.amazon.awssdk:costexplorer'
+	implementation 'software.amazon.awssdk:sts'
+	
+	// Cache
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+	implementation 'com.github.ben-manes.caffeine:caffeine'
+	
 	// Lombok
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
