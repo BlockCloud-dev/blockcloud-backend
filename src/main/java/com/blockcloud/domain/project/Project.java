@@ -30,7 +30,12 @@ public class Project extends BaseTimeEntity {
 
 	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonIgnore
+	@Builder.Default
 	private List<ProjectUser> members = new ArrayList<>();
+
+	@OneToOne(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonIgnore
+	private ProjectShareToken shareToken;
 
 	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonIgnore
