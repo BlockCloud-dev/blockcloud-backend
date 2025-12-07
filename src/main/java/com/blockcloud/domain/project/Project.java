@@ -4,7 +4,7 @@ import com.blockcloud.domain.global.BaseTimeEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-
+import com.blockcloud.domain.deployment.Deployment;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +37,10 @@ public class Project extends BaseTimeEntity {
 	@JsonIgnore
 	private ProjectShareToken shareToken;
 
+	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonIgnore
+	private List<Deployment> deployments = new ArrayList<>();
+	
 	public void updateInfo(String name, String description) {
 		this.name = name;
 		this.description = description;

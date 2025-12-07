@@ -1,0 +1,101 @@
+# .github/workflows/backend-ci.yml
+name: Backend CI
+
+on:
+  push:
+    branches: [ develop, main ]
+
+
+env:
+  NCP_REGISTRY: blockcloud.kr.ncr.ntruss.com
+  NCR_REPO: blockcloud
+  APP_NAME: backend-app
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 코드 체크아웃
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # JDK 21 설정
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Gradle 캐시 설정
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      # application.yml 생성
+      - name: Create application.yml files
+        run: |
+          mkdir -p src/main/resources
+          echo "${{ secrets.APPLICATION_YML }}" > ./src/main/resources/application.yml
+          echo "${{ secrets.APPLICATION_YML_DEV }}" > ./src/main/resources/application-dev.yml
+          echo "${{ secrets.APPLICATION_YML_PROD }}" > ./src/main/resources/application-prod.yml
+          echo "${{ secrets.APPLICATION_YML_SECRET }}" > ./src/main/resources/application-secret.yml
+
+      # gradlew 실행 권한 부여
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      # Gradle 빌드 실행
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+
+      - name: Docker Buildx 설정
+        uses: docker/setup-buildx-action@v3
+
+      - name: NCR (Container Registry) 로그인
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.NCP_REGISTRY }}
+          username: ${{ secrets.NCP_ACCESS_KEY }}
+          password: ${{ secrets.NCP_SECRET_KEY }}
+
+      - name: Docker 이미지 빌드 및 푸시
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ env.NCP_REGISTRY }}/${{ env.NCR_REPO }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: 5. YAML 수정 도구(yq) 설치 (Go 버전)
+        run: |
+          YQ_VERSION="v4.40.5" # 안정 버전 사용
+          wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+          
+      - name: 6. Deployment YAML 파일 태그 업데이트 및 커밋
+        env:
+          YAML_FILE: back-deployment.yaml
+          MANIFEST_REPO_URL: https://github.com/BlockCloud-dev/blockcloud-manifest
+          NEW_TAG: ${{ env.NCP_REGISTRY }}/${{ env.NCR_REPO }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          
+          git clone $MANIFEST_REPO_URL manifest-repo
+          cd manifest-repo
+          
+          export NEW_TAG=$NEW_TAG
+          
+          yq e '.spec.template.spec.containers[0].image = env(NEW_TAG)' -i $YAML_FILE
+          
+          git add $YAML_FILE
+          git commit -m "CD: Update front-end image to ${{ env.IMAGE_TAG }}" || echo "No changes to commit"
+          
+          git push https://${{ github.actor }}:${{ secrets.MANIFEST_REPO_PAT }}@github.com/BlockCloud-dev/blockcloud-manifest.git
